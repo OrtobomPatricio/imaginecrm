@@ -14,6 +14,7 @@ async function main() {
 
     const hashed = await bcrypt.hash(pass, 12);
     await db.insert(users).values({
+        tenantId: 1, // Default tenant
         openId: `local_${nanoid(16)}`,
         name: "Admin",
         email,
