@@ -20,58 +20,55 @@ export async function optimizeDatabaseIndexes(): Promise<void> {
     const indexStatements = [
         // ── Covering Indexes for Frequent Queries ──
 
-        // Leads list: filtered by tenantId + status, covering fullName, phone, createdAt
-        `CREATE INDEX IF NOT EXISTS idx_leads_tenant_status_covering
-         ON leads(tenantId, status, createdAt, fullName, phoneNumber)`,
+        // Leads list: filtered by tenantId + status, covering name, phone, createdAt
+        `CREATE INDEX idx_leads_tenant_status_covering
+         ON leads(tenantId, status, createdAt, name, phone)`,
 
         // Leads search by phone (exact lookup)
-        `CREATE INDEX IF NOT EXISTS idx_leads_tenant_phone
-         ON leads(tenantId, phoneNumber)`,
+        `CREATE INDEX idx_leads_tenant_phone
+         ON leads(tenantId, phone)`,
 
-        // Chat messages: conversation lookup sorted by timestamp
-        `CREATE INDEX IF NOT EXISTS idx_chatmsg_conv_timestamp
-         ON chat_messages(conversationId, timestamp DESC)`,
+        // Chat messages: conversation lookup sorted by createdAt
+        `CREATE INDEX idx_chatmsg_conv_timestamp
+         ON chat_messages(conversationId, createdAt DESC)`,
 
-        // Chat messages: tenant + conversation covering body for search
-        `CREATE INDEX IF NOT EXISTS idx_chatmsg_tenant_conv
-         ON chat_messages(tenantId, conversationId, timestamp)`,
+        // Chat messages: tenant + conversation covering content for search
+        `CREATE INDEX idx_chatmsg_tenant_conv
+         ON chat_messages(tenantId, conversationId, createdAt)`,
 
         // Conversations: tenant + status + lastMessageAt for helpdesk listing
-        `CREATE INDEX IF NOT EXISTS idx_conv_tenant_status_lastmsg
+        `CREATE INDEX idx_conv_tenant_status_lastmsg
          ON conversations(tenantId, status, lastMessageAt DESC)`,
 
         // Conversations: tenant + assignedToId for agent filtering
-        `CREATE INDEX IF NOT EXISTS idx_conv_tenant_assigned
+        `CREATE INDEX idx_conv_tenant_assigned
          ON conversations(tenantId, assignedToId)`,
 
         // Pipeline stages: tenant + pipeline for kanban
-        `CREATE INDEX IF NOT EXISTS idx_pipestages_tenant_pipeline
+        `CREATE INDEX idx_pipestages_tenant_pipeline
          ON pipeline_stages(tenantId, pipelineId, \`order\`)`,
 
         // Lead tasks: tenant + status + dueDate for dashboard widgets
-        `CREATE INDEX IF NOT EXISTS idx_leadtasks_tenant_status_due
+        `CREATE INDEX idx_leadtasks_tenant_status_due
          ON lead_tasks(tenantId, status, dueDate)`,
 
-        // Campaign contacts: campaign + status for progress tracking
-        `CREATE INDEX IF NOT EXISTS idx_campaigncontacts_campaign_status
-         ON campaign_contacts(campaignId, status)`,
+        // Campaign recipients: campaign + status for progress tracking
+        `CREATE INDEX idx_campaignrecipients_campaign_status
+         ON campaign_recipients(campaignId, status)`,
 
         // Access logs: tenant + createdAt for security audit
-        `CREATE INDEX IF NOT EXISTS idx_accesslogs_tenant_created
+        `CREATE INDEX idx_accesslogs_tenant_created
          ON access_logs(tenantId, createdAt DESC)`,
 
         // ── CHECK Constraints ──
 
-        // Ensure positive values on numeric fields
-        `ALTER TABLE leads ADD CONSTRAINT IF NOT EXISTS chk_leads_score_positive CHECK (score >= 0)`,
-
         // Ensure valid email format (basic check)
-        `ALTER TABLE leads ADD CONSTRAINT IF NOT EXISTS chk_leads_email_format
+        `ALTER TABLE leads ADD CONSTRAINT chk_leads_email_format
          CHECK (email IS NULL OR email LIKE '%_@_%.__%')`,
 
-        // Ensure conversation status is valid
-        `ALTER TABLE conversations ADD CONSTRAINT IF NOT EXISTS chk_conv_status
-         CHECK (status IN ('open', 'closed', 'pending', 'archived', 'spam'))`,
+        // Ensure conversation status is valid (matching schema enum)
+        `ALTER TABLE conversations ADD CONSTRAINT chk_conv_status
+         CHECK (status IN ('active', 'archived', 'blocked'))`,
     ];
 
     let created = 0;

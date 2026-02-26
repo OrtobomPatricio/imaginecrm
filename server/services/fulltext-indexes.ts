@@ -14,16 +14,18 @@ export async function createFulltextIndexes(): Promise<void> {
     }
 
     try {
-        // FULLTEXT index on leads (fullName, email, company, notes)
+        // FULLTEXT index on leads (name, email, notes)
+        // Note: Removed 'IF NOT EXISTS' as it causes syntax errors in some MySQL 9.x versions.
+        // The catch block below handles 'ALREADY EXISTS' errors (1061).
         await db.execute(sql`
-            CREATE FULLTEXT INDEX IF NOT EXISTS idx_leads_fulltext
-            ON leads(fullName, email, company, notes)
+            CREATE FULLTEXT INDEX idx_leads_fulltext
+            ON leads(name, email, notes)
         `);
 
-        // FULLTEXT index on chatMessages (body)
+        // FULLTEXT index on chatMessages (content)
         await db.execute(sql`
-            CREATE FULLTEXT INDEX IF NOT EXISTS idx_chatmessages_fulltext
-            ON chat_messages(body)
+            CREATE FULLTEXT INDEX idx_chatmessages_fulltext
+            ON chat_messages(content)
         `);
 
         logger.info("FULLTEXT indexes created/verified successfully");

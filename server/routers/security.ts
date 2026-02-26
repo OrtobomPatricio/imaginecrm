@@ -110,7 +110,7 @@ export const securityRouter = router({
                 user: {
                     id: userData?.id,
                     email: (userData as any)?.email,
-                    fullName: (userData as any)?.fullName,
+                    name: (userData as any)?.name,
                     role: (userData as any)?.role,
                     createdAt: (userData as any)?.createdAt,
                 },
@@ -154,7 +154,7 @@ export const securityRouter = router({
 
             // Anonymize user (soft delete - keep ID for FK integrity)
             await db.update(users).set({
-                fullName: "[DELETED USER]",
+                name: "[DELETED USER]",
                 email: `deleted-${ctx.user!.id}@anonymized.local`,
             } as any).where(eq(users.id, ctx.user!.id));
 
