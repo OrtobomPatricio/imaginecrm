@@ -93,7 +93,7 @@ export const MessageHandler = {
                 .limit(1);
 
             if (messages[0]) {
-                emitToConversation(messages[0].conversationId, "message:status", {
+                emitToConversation(tenantId, messages[0].conversationId, "message:status", {
                     messageId: messages[0].id,
                     status,
                     timestamp: new Date(),
@@ -283,7 +283,7 @@ export const MessageHandler = {
                 createdAt: messageTimestamp,
             }).$returningId();
 
-            emitToConversation(conversationId, "message:new", {
+            emitToConversation(tenantId, conversationId, "message:new", {
                 id: inserted.id,
                 conversationId,
                 content: text,

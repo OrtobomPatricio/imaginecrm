@@ -360,7 +360,7 @@ export async function processMetaWebhookPayload(payload: any, _opts: { skipSigna
           } as any).$returningId();
 
           // Emit new message via WebSocket
-          emitToConversation(conversationId, "message:new", {
+          emitToConversation(tenantId, conversationId, "message:new", {
             id: inserted.id,
             conversationId,
             content,

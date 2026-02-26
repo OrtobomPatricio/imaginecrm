@@ -26,7 +26,7 @@ let intervalId: NodeJS.Timeout | null = null;
  */
 function getNextOccurrence(date: Date, pattern: "daily" | "weekly" | "monthly"): Date {
     const next = new Date(date);
-    
+
     switch (pattern) {
         case "daily":
             next.setDate(next.getDate() + 1);
@@ -38,7 +38,7 @@ function getNextOccurrence(date: Date, pattern: "daily" | "weekly" | "monthly"):
             next.setMonth(next.getMonth() + 1);
             break;
     }
-    
+
     return next;
 }
 
@@ -56,6 +56,7 @@ async function sendReminderMessage(reminder: typeof leadReminders.$inferSelect):
         const convRows = await db
             .select({
                 id: conversations.id,
+                tenantId: conversations.tenantId,
                 contactPhone: conversations.contactPhone,
                 whatsappNumberId: conversations.whatsappNumberId,
                 channel: conversations.channel,
@@ -105,7 +106,7 @@ async function sendReminderMessage(reminder: typeof leadReminders.$inferSelect):
 
         // Build message with buttons if provided
         const buttons = reminder.buttons as Array<{ id: string; text: string }> | null;
-        
+
         if (buttons && buttons.length > 0) {
             // Interactive message with buttons
             baileysContent = {
@@ -148,7 +149,7 @@ async function sendReminderMessage(reminder: typeof leadReminders.$inferSelect):
         const result = await BaileysService.sendMessage(whatsappNumberId, jid, baileysContent);
 
         // Emit WebSocket event for real-time UI update
-        emitToConversation(conversation.id, "message:new", {
+        emitToConversation(conversation.tenantId, conversation.id, "message:new", {
             id: Date.now(), // Temporary ID
             conversationId: conversation.id,
             content: reminder.message,
@@ -222,7 +223,8 @@ async function processDueReminders(): Promise<number> {
 
                         // Check if we should create next occurrence
                         if (!reminder.recurrenceEndDate || nextDate <= reminder.recurrenceEndDate) {
-                            await db.insert(leadReminders).values({ tenantId: 1, 
+                            await db.insert(leadReminders).values({
+                                tenantId: 1,
                                 leadId: reminder.leadId,
                                 conversationId: reminder.conversationId,
                                 createdById: reminder.createdById,
@@ -259,7 +261,7 @@ async function processDueReminders(): Promise<number> {
                 }
             } catch (error: any) {
                 logger.error({ error, reminderId: reminder.id }, "[RemindersWorker] Error processing reminder");
-                
+
                 // Mark as failed
                 await db
                     .update(leadReminders)
@@ -286,15 +288,15 @@ export function startRemindersWorker(): void {
     }
 
     logger.info(`[RemindersWorker] Starting - checking every ${CHECK_INTERVAL_MS / 1000} seconds`);
-    
+
     // Run immediately
     processDueReminders().catch(console.error);
-    
+
     // Schedule periodic checks
     intervalId = setInterval(() => {
         processDueReminders().catch(console.error);
     }, CHECK_INTERVAL_MS);
-    
+
     intervalId.unref();
 }
 

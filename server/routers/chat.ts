@@ -551,7 +551,7 @@ export const chatRouter = router({
 
             // Emit WebSocket event for real-time updates
             console.log(`[WebSocket] Emitting message:new for conversation ${input.conversationId}, message ${id}`);
-            emitToConversation(input.conversationId, "message:new", {
+            emitToConversation(ctx.tenantId, input.conversationId, "message:new", {
                 id,
                 conversationId: input.conversationId,
                 content: input.content ?? (input.templateName ? `Template: ${input.templateName}` : ""),

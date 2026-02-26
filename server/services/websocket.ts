@@ -297,20 +297,20 @@ export function emitToUser(userId: number, event: keyof ServerToClientEvents, da
 }
 
 // Emit to conversation participants
-export function emitToConversation(conversationId: number, event: keyof ServerToClientEvents, data: any): void {
+export function emitToConversation(tenantId: number, conversationId: number, event: keyof ServerToClientEvents, data: any): void {
     if (!io) {
         logger.warn("[emitToConversation] IO not initialized");
         return;
     }
-    const room = `conversation:${conversationId}`;
+    const room = `tenant:${tenantId}:conversation:${conversationId}`;
     logger.info(`[emitToConversation] Emitting ${event} to room ${room}`);
     io.to(room).emit(event, data);
 }
 
-// Broadcast to all connected clients
-export function broadcast(event: keyof ServerToClientEvents, data: any): void {
+// Broadcast to all connected clients WITHIN a tenant
+export function broadcastToTenant(tenantId: number, event: keyof ServerToClientEvents, data: any): void {
     if (!io) return;
-    io.emit(event, data);
+    io.to(`tenant:${tenantId}`).emit(event, data);
 }
 
 // Emit to users with specific role
