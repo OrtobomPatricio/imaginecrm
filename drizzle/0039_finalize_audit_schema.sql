@@ -2,21 +2,21 @@
 -- This migration captures all manual schema hardening and table structure patches applied during the final audit.
 
 -- 1. Hardening Chat Messages
-ALTER TABLE `chat_messages` ADD COLUMN IF NOT EXISTS `direction` varchar(20) DEFAULT 'inbound' NOT NULL;
-ALTER TABLE `chat_messages` ADD COLUMN IF NOT EXISTS `userId` int;
+ALTER TABLE `chat_messages` ADD COLUMN `direction` varchar(20) DEFAULT 'inbound' NOT NULL;
+ALTER TABLE `chat_messages` ADD COLUMN `userId` int;
 
 -- 2. Hardening Leads Reporting
-ALTER TABLE `leads` ADD COLUMN IF NOT EXISTS `status` varchar(50) DEFAULT 'new' NOT NULL;
-ALTER TABLE `leads` ADD COLUMN IF NOT EXISTS `value` decimal(15,2);
+ALTER TABLE `leads` ADD COLUMN `status` varchar(50) DEFAULT 'new' NOT NULL;
+ALTER TABLE `leads` ADD COLUMN `value` decimal(15,2);
 
 -- 3. Hardening Users (GDPR and Multi-tenancy)
-ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `gdprConsentAt` timestamp NULL;
-ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `gdprConsentVersion` int;
-ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `marketingConsent` tinyint(1) DEFAULT 0;
-ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `marketingConsentAt` timestamp NULL;
-ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `dataRetentionUntil` timestamp NULL;
+ALTER TABLE `users` ADD COLUMN `gdprConsentAt` timestamp NULL;
+ALTER TABLE `users` ADD COLUMN `gdprConsentVersion` int;
+ALTER TABLE `users` ADD COLUMN `marketingConsent` tinyint(1) DEFAULT 0;
+ALTER TABLE `users` ADD COLUMN `marketingConsentAt` timestamp NULL;
+ALTER TABLE `users` ADD COLUMN `dataRetentionUntil` timestamp NULL;
 -- Use a generic approach for tenantId if missing, default to 1 (which will be the main tenant created by bootstrap)
-ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `tenantId` int NOT NULL DEFAULT 1;
+ALTER TABLE `users` ADD COLUMN `tenantId` int NOT NULL DEFAULT 1;
 
 -- 4. Recreate Reminders Worker Table
 DROP TABLE IF EXISTS `lead_reminders`;
@@ -52,9 +52,9 @@ ALTER TABLE `lead_reminders` ADD CONSTRAINT `lead_reminders_leadId_leads_id_fk` 
 ALTER TABLE `lead_reminders` ADD CONSTRAINT `lead_reminders_createdById_users_id_fk` FOREIGN KEY (`createdById`) REFERENCES `users`(`id`) ON DELETE cascade ON UPDATE no action;
 
 -- 5. Add tenantId to other core tables if missing (Pipeline Stages)
-ALTER TABLE `pipeline_stages` ADD COLUMN IF NOT EXISTS `tenantId` int NOT NULL DEFAULT 1;
+ALTER TABLE `pipeline_stages` ADD COLUMN `tenantId` int NOT NULL DEFAULT 1;
 
 -- 6. Add tenantId to custom_fields
-ALTER TABLE `custom_fields` ADD COLUMN IF NOT EXISTS `tenantId` int NOT NULL DEFAULT 1;
+ALTER TABLE `custom_fields` ADD COLUMN `tenantId` int NOT NULL DEFAULT 1;
 
 -- Note: Materialized Views are generated dynamically by the backend service on startup, so they are not included here.
