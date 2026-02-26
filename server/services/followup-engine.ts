@@ -2,6 +2,7 @@ import { getDb } from "../db";
 import { followupRules, followupExecutions, leads, conversations, chatMessages } from "../../drizzle/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { logger } from "../_core/logger";
+import { messageOutboundQueue } from "./queue";
 
 interface RuleEvaluationContext {
     lead: any;
@@ -11,35 +12,28 @@ interface RuleEvaluationContext {
 
 export class FollowupEngine {
     private isRunning: boolean = false;
-    private interval: NodeJS.Timeout | null = null;
 
-    start(intervalMs: number = 5 * 60 * 1000): void {
+    start(): void {
         if (this.isRunning) {
             logger.info("[FollowupEngine] Already running");
             return;
         }
 
-        logger.info("[FollowupEngine] Starting...");
+        logger.info("[FollowupEngine] Starting Followup Engine (Stateless Mode)");
         this.isRunning = true;
-
-        this.runCycle().catch((error) => {
-            logger.error({ err: error }, "[FollowupEngine] Error in initial cycle");
-        });
-
-        this.interval = setInterval(() => {
-            this.runCycle().catch((error) => {
-                logger.error({ err: error }, "[FollowupEngine] Error in cycle");
-            });
-        }, intervalMs);
     }
 
     stop(): void {
-        if (this.interval) {
-            clearInterval(this.interval);
-            this.interval = null;
-        }
         this.isRunning = false;
         logger.info("[FollowupEngine] Stopped");
+    }
+
+    /**
+     * Executes one cycle. Designed to be called by BullMQ workers.
+     */
+    async executeManualCycle(): Promise<void> {
+        if (!this.isRunning) return;
+        await this.runCycle();
     }
 
     private async runCycle(): Promise<void> {
@@ -271,7 +265,16 @@ export class FollowupEngine {
                         status: "queued"
                     } as any);
 
-                    // Normally here we would integrate with the queue system or Baileys to actually send it
+                    // Offload actual Meta API connection attempt to BullMQ
+                    if (messageOutboundQueue) {
+                        await messageOutboundQueue.add('send-whatsapp', {
+                            tenantId: tenantId ?? 1,
+                            conversationId: context.conversation.id,
+                            messageId: externalId,
+                            content: messageTemplate,
+                            externalId
+                        });
+                    }
 
                     return { success: true, data: { message: "Message queued" } };
                 }

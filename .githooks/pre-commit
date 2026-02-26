@@ -7,3 +7,11 @@ if ! command -v gitleaks >/dev/null 2>&1; then
 fi
 
 gitleaks detect --no-git --source . --redact --config .gitleaks.toml
+
+echo "[pre-commit] Ejecutando pnpm run check (Validación de TypeScript)..."
+if ! pnpm run check; then
+  echo "[pre-commit] Error detectado en la compilación de TypeScript."
+  echo "Por favor resuelve los errores de Linting/TSC antes de hacer commit."
+  exit 1
+fi
+echo "[pre-commit] Todas las comprobaciones han pasado el nivel de seguridad Enterprise."

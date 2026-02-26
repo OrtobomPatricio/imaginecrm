@@ -303,7 +303,13 @@ async function startServer() {
     startWorkflowPoller();
     startTicketStatusWorker();
     startRemindersWorker();
-    followupEngine.start();
+    followupEngine.start(); // Log stateless start
+
+    // Background Queue Workers (BullMQ - Redis)
+    import("../services/queue").then(({ startWorkers, scheduleFollowupCron }) => {
+      startWorkers();
+      scheduleFollowupCron().catch(err => logger.error({ err: safeError(err) }, "[BullMQ] schedule cron failed"));
+    }).catch(err => logger.error({ err: safeError(err) }, "[BullMQ] init failed"));
 
     // Database optimization (FULLTEXT indexes)
     import("../services/fulltext-indexes").then(({ createFulltextIndexes }) => {
