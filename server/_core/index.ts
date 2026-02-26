@@ -34,6 +34,7 @@ import { logger, safeError } from "./logger";
 import { registerTestRoutes } from "./test-routes";
 import { initWebSocket } from "../services/websocket";
 import { validateEnvironment } from "./env-validation";
+import { followupEngine } from "../services/followup-engine";
 
 // Validate environment variables before starting
 validateEnvironment();
@@ -302,6 +303,7 @@ async function startServer() {
     startWorkflowPoller();
     startTicketStatusWorker();
     startRemindersWorker();
+    followupEngine.start();
 
     // Database optimization (FULLTEXT indexes)
     import("../services/fulltext-indexes").then(({ createFulltextIndexes }) => {

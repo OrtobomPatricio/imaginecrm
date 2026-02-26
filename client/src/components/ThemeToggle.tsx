@@ -8,9 +8,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export function ThemeToggle({ className }: { className?: string }) {
     const { theme, setTheme, resolvedTheme } = useTheme();
+    const { user } = useAuth();
+    const updateThemeMutation = trpc.auth.updateTheme.useMutation();
+
+    const handleSetTheme = (newTheme: "light" | "dark" | "system") => {
+        setTheme(newTheme);
+        if (user) {
+            updateThemeMutation.mutate({ theme: newTheme });
+        }
+    };
 
     const icons = {
         light: Sun,
@@ -29,9 +40,9 @@ export function ThemeToggle({ className }: { className?: string }) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
+                <Button
+                    variant="ghost"
+                    size="icon"
                     className={cn("relative", className)}
                     aria-label="Cambiar tema"
                 >
@@ -40,24 +51,24 @@ export function ThemeToggle({ className }: { className?: string }) {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuItem 
-                    onClick={() => setTheme("light")}
+                <DropdownMenuItem
+                    onClick={() => handleSetTheme("light")}
                     className={cn(theme === "light" && "bg-accent")}
                 >
                     <Sun className="mr-2 h-4 w-4" />
                     Claro
                     {theme === "light" && <span className="ml-auto text-xs">✓</span>}
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                    onClick={() => setTheme("dark")}
+                <DropdownMenuItem
+                    onClick={() => handleSetTheme("dark")}
                     className={cn(theme === "dark" && "bg-accent")}
                 >
                     <Moon className="mr-2 h-4 w-4" />
                     Oscuro
                     {theme === "dark" && <span className="ml-auto text-xs">✓</span>}
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                    onClick={() => setTheme("system")}
+                <DropdownMenuItem
+                    onClick={() => handleSetTheme("system")}
                     className={cn(theme === "system" && "bg-accent")}
                 >
                     <Monitor className="mr-2 h-4 w-4" />

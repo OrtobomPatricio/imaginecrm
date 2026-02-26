@@ -38,6 +38,7 @@ export const users = mysqlTable("users", {
   hasSeenTour: boolean("hasSeenTour").default(false).notNull(),
   invitationToken: varchar("invitationToken", { length: 255 }),
   invitationExpires: timestamp("invitationExpires"),
+  theme: varchar("theme", { length: 20 }).default("system").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -938,6 +939,19 @@ export const leadNotes = mysqlTable("lead_notes", {
 export type LeadNote = typeof leadNotes.$inferSelect;
 export type InsertLeadNote = typeof leadNotes.$inferInsert;
 
+export const conversationNotes = mysqlTable("conversation_notes", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  conversationId: int("conversationId").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdById: int("createdById").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ConversationNote = typeof conversationNotes.$inferSelect;
+export type InsertConversationNote = typeof conversationNotes.$inferInsert;
+
 export const leadTasks = mysqlTable("lead_tasks", {
   id: int("id").autoincrement().primaryKey(),
   tenantId: int("tenantId").notNull().references(() => tenants.id, { onDelete: "cascade" }),
@@ -1167,3 +1181,60 @@ export type InsertFileUpload = typeof fileUploads.$inferInsert;
 
 export type OnboardingProgress = typeof onboardingProgress.$inferSelect;
 export type InsertOnboardingProgress = typeof onboardingProgress.$inferInsert;
+
+export const savedFilters = mysqlTable("saved_filters", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 100 }).notNull(),
+  entityType: mysqlEnum("entityType", ["leads", "conversations", "campaigns"]).default("leads").notNull(),
+  filterCriteria: json("filterCriteria").$type<Record<string, any>>().notNull(),
+  isDefault: boolean("isDefault").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SavedFilter = typeof savedFilters.$inferSelect;
+export type InsertSavedFilter = typeof savedFilters.$inferInsert;
+
+export const followupRules = mysqlTable("followup_rules", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  isActive: boolean("isActive").default(true).notNull(),
+  priority: int("priority").default(0).notNull(),
+
+  // Triggers
+  triggerType: varchar("triggerType", { length: 50 }).notNull(), // no_response, status_change, time_based
+  triggerConfig: json("triggerConfig").$type<Record<string, any>>().notNull(),
+
+  // Conditions & Actions
+  conditions: json("conditions").$type<Record<string, any>>(), // optional filtering criteria (e.g lead origin)
+  actionType: varchar("actionType", { length: 50 }).notNull(), // send_message, change_status, assign_to, add_tag
+  actionConfig: json("actionConfig").$type<Record<string, any>>().notNull(),
+
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FollowupRule = typeof followupRules.$inferSelect;
+export type InsertFollowupRule = typeof followupRules.$inferInsert;
+
+export const followupExecutions = mysqlTable("followup_executions", {
+  id: int("id").autoincrement().primaryKey(),
+  ruleId: int("ruleId").notNull().references(() => followupRules.id, { onDelete: "cascade" }),
+  leadId: int("leadId").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  conversationId: int("conversationId"), // linked to chatMessages if related to conversation
+  executedAt: timestamp("executedAt").defaultNow().notNull(),
+  success: boolean("success").default(true).notNull(),
+  errorMessage: text("errorMessage"),
+  actionResult: json("actionResult").$type<Record<string, any>>(),
+});
+
+export type FollowupExecution = typeof followupExecutions.$inferSelect;
+export type InsertFollowupExecution = typeof followupExecutions.$inferInsert;
+
+export { chatMessages as messages };
+
+

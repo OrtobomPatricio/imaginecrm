@@ -76,6 +76,7 @@ export const authRouter = router({
             loginMethod: u.loginMethod,
             isActive: u.isActive,
             hasSeenTour: u.hasSeenTour,
+            theme: (u as any).theme,
         };
     }),
 
@@ -99,6 +100,19 @@ export const authRouter = router({
 
         return { success: true };
     }),
+
+    updateTheme: protectedProcedure
+        .input(z.object({ theme: z.string().min(1) }))
+        .mutation(async ({ input, ctx }) => {
+            const db = await getDb();
+            if (!db || !ctx.user) return { success: false };
+
+            await db.update(users)
+                .set({ theme: input.theme })
+                .where(eq(users.id, ctx.user.id));
+
+            return { success: true };
+        }),
 
     loginWithCredentials: publicProcedure
         .input(z.object({ email: z.string().includes("@"), password: z.string() }))

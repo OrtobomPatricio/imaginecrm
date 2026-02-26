@@ -3,7 +3,6 @@ import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
-import * as mockDb from './db-mock';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -15,17 +14,14 @@ export async function getDb() {
   if (_db) return _db;
 
   const isProd = process.env.NODE_ENV === "production";
-  const allowMockDb = !isProd && (process.env.ALLOW_MOCK_DB === "1" || process.env.NODE_ENV === "test");
 
   if (!process.env.DATABASE_URL) {
-    if (allowMockDb || process.env.USE_MOCK_DB === "true") {
-      console.log("[Database] Using MOCK database (no DATABASE_URL and mock explicitly enabled)");
-      _db = await mockDb.getDb();
-      return _db;
-    }
     if (isProd) {
       console.error("[Database] DATABASE_URL missing in production. Exiting.");
       process.exit(1);
+    } else {
+      console.warn("[Database] DATABASE_URL missing. Operating without database (unstable).");
+      return null;
     }
   }
 
@@ -55,15 +51,10 @@ export async function getDb() {
   } catch (error) {
     console.error("[Database] MySQL Connection FAILURE:", error);
     if (isProd) {
-      console.error("[Database] Production mode forbids mock DB fallback. Exiting.");
+      console.error("[Database] Production mode forbids continuation without DB. Exiting.");
       process.exit(1);
     }
-    if (allowMockDb || process.env.USE_MOCK_DB === "true") {
-      console.log("[Database] Falling back to MOCK database (explicitly enabled for non-production)...");
-      _db = await mockDb.getDb();
-    } else {
-      throw error;
-    }
+    throw error;
   }
   return _db;
 }

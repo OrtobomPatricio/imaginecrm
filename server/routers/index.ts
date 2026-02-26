@@ -38,6 +38,9 @@ import { termsRouter } from "./terms";
 import { gdprRouter } from "./gdpr";
 import { signupRouter } from "./signup";
 import { analyticsRouter } from "./analytics";
+import { searchRouter } from "./search";
+import { conversationNotesRouter } from "./conversation-notes";
+import { savedFiltersRouter } from "./saved-filters";
 
 export const appRouter = router({
     system: systemRouter,
@@ -81,6 +84,9 @@ export const appRouter = router({
     gdpr: gdprRouter,
     signup: signupRouter,
     analytics: analyticsRouter,
+    search: searchRouter,
+    conversationNotes: conversationNotesRouter,
+    savedFilters: savedFiltersRouter,
 });
 
 export type AppRouter = typeof appRouter;

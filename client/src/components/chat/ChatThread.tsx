@@ -74,6 +74,7 @@ export function ChatThread({ conversationId, showHelpdeskControls = false }: Pro
 
   const [message, setMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [uploadingAttachments, setUploadingAttachments] = useState<UploadingAttachment[]>([]);
   const uploadXhrByIdRef = useRef<Record<string, XMLHttpRequest | null>>({});
@@ -739,8 +740,58 @@ export function ChatThread({ conversationId, showHelpdeskControls = false }: Pro
     return <span className="text-xs">•</span>;
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      const items: UploadingAttachment[] = files.map((f) => {
+        const id = uid();
+        uploadFileByIdRef.current[id] = f;
+        return { id, name: f.name, type: f.type || "application/octet-stream", progress: 0, status: "uploading" };
+      });
+
+      setUploadingAttachments((prev) => [...prev, ...items]);
+
+      for (const it of items) {
+        // eslint-disable-next-line no-await-in-loop
+        await startUploadAttachment(it.id);
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full">
+    <div
+      className={`flex flex-col h-full relative ${isDragging ? "bg-primary/5" : ""}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDragging && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm border-2 border-dashed border-primary rounded-lg m-2 pointer-events-none transition-all">
+          <div className="flex flex-col items-center text-primary">
+            <Paperclip className="h-10 w-10 mb-3 animate-bounce" />
+            <p className="text-lg font-medium">Suelta los archivos aquí</p>
+            <p className="text-sm text-primary/70 mt-1">Se adjuntarán al mensaje</p>
+          </div>
+        </div>
+      )}
       {showHelpdeskControls && isPrivileged && conversation && (
         <div className="border-b p-2 flex items-center gap-2 overflow-x-auto bg-muted/10">
           <span className="text-xs font-medium text-muted-foreground shrink-0">Ticket:</span>

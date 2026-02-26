@@ -115,6 +115,8 @@ export default function DashboardLayout({
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   useOfflineQueue(); // Global sync handler
 
+  const { theme, setTheme, toggleTheme } = useTheme();
+
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
   }, [sidebarWidth]);
@@ -123,6 +125,10 @@ export default function DashboardLayout({
     // Show tour for new users
     if (user && !user.hasSeenTour) {
       setShowTour(true);
+    }
+    // Sincronizar tema de usuario guardado en DB
+    if (user && user.theme && user.theme !== theme) {
+      setTheme(user.theme as any);
     }
   }, [user]);
 
@@ -234,7 +240,7 @@ function DashboardLayoutContent({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const { isShortcutsOpen, setIsShortcutsOpen } = useKeyboardShortcuts();
-  const { theme, toggleTheme } = useTheme();
+  // useTheme removed from here, extracted logic earlier
 
   // Generate Breadcrumbs
   const getBreadcrumbs = () => {

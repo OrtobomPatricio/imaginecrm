@@ -80,6 +80,46 @@ export const leadsRouter = router({
                 .offset(input?.offset ?? 0);
         }),
 
+    listInfinite: permissionProcedure("leads.view")
+        .input(z.object({
+            pipelineStageId: z.number().optional(),
+            limit: z.number().min(1).max(100).default(25),
+            cursor: z.number().nullish(),
+        }).optional())
+        .query(async ({ input, ctx }) => {
+            const db = await getDb();
+            if (!db) return { items: [], nextCursor: null };
+
+            let query = db.select().from(leads);
+
+            const reqInput = input || { limit: 25 };
+            const conditions: any[] = [eq(leads.tenantId, ctx.tenantId)];
+
+            if (reqInput.pipelineStageId) {
+                conditions.push(eq(leads.pipelineStageId, reqInput.pipelineStageId));
+            }
+            if (reqInput.cursor) {
+                // Return leads older than the cursor ID
+                const { lt } = await import("drizzle-orm");
+                conditions.push(lt(leads.id, reqInput.cursor));
+            }
+
+            const items = await query.where(and(...conditions))
+                .orderBy(desc(leads.id))
+                .limit((reqInput.limit || 25) + 1);
+
+            let nextCursor: typeof reqInput.cursor = null;
+            if (items.length > (reqInput.limit || 25)) {
+                const nextItem = items.pop();
+                nextCursor = nextItem!.id;
+            }
+
+            return {
+                items,
+                nextCursor,
+            };
+        }),
+
     getById: permissionProcedure("leads.view")
         .input(z.object({ id: z.number() }))
         .query(async ({ input, ctx }) => {
